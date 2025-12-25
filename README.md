@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WeighIn - 体重管理应用
 
-## Getting Started
+基于 Next.js 16 开发的体重管理 H5 应用。
 
-First, run the development server:
+## 技术栈
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **框架**: Next.js 16 (App Router)
+- **UI 库**: React 19
+- **样式**: Tailwind CSS 4
+- **组件库**: shadcn/ui
+- **状态管理**: Zustand
+- **表单处理**: React Hook Form + Zod
+- **数据库**: MySQL + Prisma ORM
+
+## 项目结构
+
+```
+weighin/
+├── app/                    # Next.js App Router
+│   ├── api/               # API Routes
+│   ├── layout.tsx         # 根布局
+│   └── page.tsx           # 首页
+├── components/            # React 组件
+│   └── ui/               # shadcn/ui 组件
+├── lib/                  # 工具函数
+│   ├── db.ts             # Prisma Client
+│   ├── auth.ts           # 认证工具
+│   └── utils.ts          # 通用工具
+├── store/                # Zustand 状态管理
+│   ├── auth-store.ts     # 认证状态
+│   └── ui-store.ts       # UI 状态
+├── types/                # TypeScript 类型定义
+├── prisma/               # Prisma 配置
+│   └── schema.prisma     # 数据库模型
+└── public/               # 静态资源
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 开发
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# 安装依赖
+npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# 开发模式
+npm run dev
 
-## Learn More
+# 构建
+npm run build
 
-To learn more about Next.js, take a look at the following resources:
+# 启动生产服务器
+npm start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 数据库设置
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. 配置 `.env` 文件中的 `DATABASE_URL`
+2. 运行数据库迁移：
+   ```bash
+   npx prisma migrate dev
+   ```
+3. 生成 Prisma Client：
+   ```bash
+   npx prisma generate
+   ```
 
-## Deploy on Vercel
+## 环境变量
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+在 `.env` 文件中配置：
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+DATABASE_URL="mysql://user:password@localhost:3306/weighin"
+JWT_SECRET="your-secret-key-change-in-production"
+```
+
+## 更多信息
+
+请参考 `/docs` 目录下的技术文档。
