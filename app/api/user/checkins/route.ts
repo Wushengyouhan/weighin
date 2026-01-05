@@ -32,11 +32,12 @@ export async function GET(request: NextRequest) {
       )
       firstWeight = Number(sortedCheckins[0].weight)
       lastWeight = Number(sortedCheckins[sortedCheckins.length - 1].weight)
-      totalWeightLoss = firstWeight - lastWeight
+      // 使用两位小数精度计算
+      totalWeightLoss = Math.round((firstWeight - lastWeight) * 100) / 100
     }
 
-    // 计算平均每周减重
-    const avgWeeklyLoss = weekCount > 0 ? totalWeightLoss / weekCount : 0
+    // 计算平均每周减重（使用两位小数精度）
+    const avgWeeklyLoss = weekCount > 0 ? Math.round((totalWeightLoss / weekCount) * 100) / 100 : 0
 
     // 格式化打卡历史数据
     const history = checkins.map((checkin, index) => {
@@ -89,9 +90,9 @@ export async function GET(request: NextRequest) {
       msg: 'success',
       data: {
         stats: {
-          totalWeightLoss: totalWeightLoss.toFixed(1),
-          firstWeight: firstWeight?.toFixed(1) || '0',
-          lastWeight: lastWeight?.toFixed(1) || '0',
+          totalWeightLoss: totalWeightLoss.toFixed(2),
+          firstWeight: firstWeight?.toFixed(2) || '0.00',
+          lastWeight: lastWeight?.toFixed(2) || '0.00',
           weekCount,
           avgWeeklyLoss: avgWeeklyLoss.toFixed(2),
         },

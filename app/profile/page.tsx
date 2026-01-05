@@ -422,13 +422,34 @@ export default function ProfilePage() {
             {/* 统计卡片 */}
             <div className="grid grid-cols-2 gap-4">
               <Card className="p-4 bg-gradient-to-br from-green-50 to-emerald-50">
-                <div className="text-sm text-gray-600 mb-1">累计减重</div>
-                <div className="text-3xl text-green-600 mb-1">
-                  {checkinStats?.totalWeightLoss || '0.0'} kg
+                <div className="text-sm text-gray-600 mb-1">
+                  {(() => {
+                    const loss = parseFloat(checkinStats?.totalWeightLoss || '0')
+                    if (loss > 0) return '体重总共减少'
+                    if (loss < 0) return '体重总共增加'
+                    return '体重无变化'
+                  })()}
+                </div>
+                <div
+                  className={`text-3xl mb-1 ${
+                    (() => {
+                      const loss = parseFloat(checkinStats?.totalWeightLoss || '0')
+                      if (loss > 0) return 'text-green-600'
+                      if (loss < 0) return 'text-red-600'
+                      return 'text-gray-600'
+                    })()
+                  }`}
+                >
+                  {(() => {
+                    const loss = parseFloat(checkinStats?.totalWeightLoss || '0')
+                    if (loss === 0) return '0.00'
+                    return Math.abs(loss).toFixed(2)
+                  })()}{' '}
+                  kg
                 </div>
                 <div className="text-xs text-gray-500">
-                  从 {checkinStats?.firstWeight || '0.0'} kg →{' '}
-                  {checkinStats?.lastWeight || '0.0'} kg
+                  从 {checkinStats?.firstWeight || '0.00'} kg →{' '}
+                  {checkinStats?.lastWeight || '0.00'} kg
                 </div>
               </Card>
               <Card className="p-4 bg-gradient-to-br from-purple-50 to-pink-50">
@@ -493,7 +514,7 @@ export default function ProfilePage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <div className="font-medium">{record.week}</div>
-                          <div className="text-lg font-semibold">{record.weight} kg</div>
+                          <div className="text-lg font-semibold">{record.weight.toFixed(2)} kg</div>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="text-sm text-gray-600">{record.date}</div>

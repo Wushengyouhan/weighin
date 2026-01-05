@@ -149,7 +149,7 @@ export default function HomePage() {
               </div>
               <h2 className="text-xl font-semibold text-gray-900">打卡成功！</h2>
               <p className="text-gray-600 text-lg">
-                本周体重：{checkInStatus.checkin.weight} kg
+                本周体重：{checkInStatus.checkin.weight.toFixed(2)} kg
               </p>
               <p className="text-sm text-gray-500">
                 已提交，等待今晚 21:00 结算

@@ -59,8 +59,8 @@ export default function CheckinPage() {
       if (result.code === 200) {
         const history = result.data.history
         setIsFirstWeek(history.length === 0)
-        if (history.length > 0 && history[history.length - 1]) {
-          const lastCheckin = history[history.length - 1]
+        if (history.length > 0 && history[0]) {
+          const lastCheckin = history[0]
           setLastWeekWeight(lastCheckin.weight)
         }
       }
@@ -229,8 +229,8 @@ export default function CheckinPage() {
             {!isFirstWeek && lastWeekWeight && (
               <div className="bg-gray-50 p-3 rounded-lg">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">上周体重</span>
-                  <span className="font-medium">{lastWeekWeight} kg</span>
+                  <span className="text-gray-600">上次体重</span>
+                  <span className="font-medium">{lastWeekWeight.toFixed(2)} kg</span>
                 </div>
                 {weight && weightDiff !== null && (
                   <div className="flex justify-between text-sm mt-2 pt-2 border-t border-gray-200">
