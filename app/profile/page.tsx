@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth-store'
 import { BottomNav } from '@/components/BottomNav'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Loading } from '@/components/Loading'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -48,6 +49,7 @@ interface CheckinHistory {
   week: string
   weekNumber: number
   weight: number
+  photoUrl: string
   date: string
   weightDiff: number
   createdAt: Date
@@ -78,7 +80,7 @@ interface Certificate {
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { isLoggedIn, user, logout, setUser } = useAuthStore()
+  const { isLoggedIn, user, logout, setUser, _hasHydrated } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
   const [nickname, setNickname] = useState(user?.nickname || '')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar || null)
@@ -90,6 +92,11 @@ export default function ProfilePage() {
   const [certificates, setCertificates] = useState<Certificate[]>([])
 
   useEffect(() => {
+    // 等待状态恢复完成
+    if (!_hasHydrated) {
+      return
+    }
+
     if (!isLoggedIn) {
       router.push('/login')
       return
@@ -97,7 +104,7 @@ export default function ProfilePage() {
     fetchUserData()
     fetchCheckins()
     fetchRewards()
-  }, [isLoggedIn, router])
+  }, [isLoggedIn, _hasHydrated, router])
 
   const fetchUserData = async () => {
     try {
@@ -268,6 +275,11 @@ export default function ProfilePage() {
     if (type === 'runner-up') return '🥈'
     if (type === 'third') return '🥉'
     return '🎖️'
+  }
+
+  // 等待状态恢复完成
+  if (!_hasHydrated) {
+    return <Loading />
   }
 
   if (!isLoggedIn || loading) {
@@ -467,32 +479,43 @@ export default function ProfilePage() {
                   {checkinHistory.map((record, index) => (
                     <div
                       key={record.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
                     >
-                      <div>
-                        <div>{record.week}</div>
-                        <div className="text-sm text-gray-600">{record.date}</div>
+                      {/* 照片缩略图 */}
+                      <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-200">
+                        <img
+                          src={record.photoUrl}
+                          alt={`${record.week}打卡照片`}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <div className="text-right">
-                        <div className="text-lg">{record.weight} kg</div>
-                        {index < checkinHistory.length - 1 && (
-                          <div
-                            className={`text-sm ${
-                              record.weightDiff < 0
-                                ? 'text-green-600'
+                      {/* 信息区域 */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="font-medium">{record.week}</div>
+                          <div className="text-lg font-semibold">{record.weight} kg</div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-gray-600">{record.date}</div>
+                          {index < checkinHistory.length - 1 && (
+                            <div
+                              className={`text-sm font-medium ${
+                                record.weightDiff < 0
+                                  ? 'text-green-600'
+                                  : record.weightDiff > 0
+                                    ? 'text-red-600'
+                                    : 'text-gray-500'
+                              }`}
+                            >
+                              {record.weightDiff < 0
+                                ? '↓'
                                 : record.weightDiff > 0
-                                  ? 'text-red-600'
-                                  : 'text-gray-500'
-                            }`}
-                          >
-                            {record.weightDiff < 0
-                              ? '↓'
-                              : record.weightDiff > 0
-                                ? '↑'
-                                : '—'}{' '}
-                            {Math.abs(record.weightDiff).toFixed(1)} kg
-                          </div>
-                        )}
+                                  ? '↑'
+                                  : '—'}{' '}
+                              {Math.abs(record.weightDiff).toFixed(1)} kg
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}

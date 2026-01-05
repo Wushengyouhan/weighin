@@ -52,10 +52,12 @@ export async function GET(request: NextRequest) {
 
       return {
         id: checkin.id.toString(),
-        week: `第${week}周`,
+        week: `${year}年第${week}周`,
         weekNumber: checkin.week_number,
         weight: Number(checkin.weight),
+        photoUrl: checkin.photo_url,
         date: new Date(checkin.created_at).toLocaleDateString('zh-CN', {
+          year: 'numeric',
           month: '2-digit',
           day: '2-digit',
         }),
@@ -73,7 +75,7 @@ export async function GET(request: NextRequest) {
         const week = weekNumber % 100
 
         return {
-          week: `第${week}周`,
+          week: `${year}年第${week}周`,
           weight: Number(checkin.weight),
           date: new Date(checkin.created_at).toLocaleDateString('zh-CN', {
             month: '2-digit',
