@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getUserIdFromRequest } from '@/lib/auth'
+import { getWeekMonday } from '@/lib/week'
 
 // 获取荣誉墙数据
 export async function GET(request: NextRequest) {
@@ -55,11 +56,18 @@ export async function GET(request: NextRequest) {
         color = 'from-blue-400 to-blue-600'
       }
 
+      // 根据周编号计算该周周一的日期
+      const weekMonday = getWeekMonday(weekNumber)
+      
       return {
         id: reward.id.toString(),
         type: type === 1 ? 'champion' : type === 2 ? 'runner-up' : type === 3 ? 'third' : 'participant',
         title,
-        date: new Date(reward.created_at).toLocaleDateString('zh-CN'),
+        date: weekMonday.toLocaleDateString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }),
         color,
         certificateUrl: reward.certificate_url,
         weekNumber: reward.week_number,

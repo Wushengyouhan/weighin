@@ -24,7 +24,6 @@ import {
   TrendingDown,
   Award,
   Download,
-  Share2,
   Camera,
   Edit2,
   LogOut,
@@ -585,35 +584,41 @@ export default function ProfilePage() {
                 {certificates.map((cert) => (
                   <Card
                     key={cert.id}
-                    className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group"
+                    className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group p-0"
                   >
                     {/* 奖状图片区域 */}
-                    <div
-                      className={`h-40 bg-gradient-to-br ${cert.color} flex flex-col items-center justify-center text-white p-4 relative`}
-                    >
-                      <div className="text-5xl mb-2">
-                        {getTrophyEmoji(cert.type)}
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xs opacity-90 mb-1">WeighIn</div>
-                        <div className="text-sm">荣誉证书</div>
-                      </div>
+                    <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
+                      {cert.certificateUrl ? (
+                        <img
+                          src={cert.certificateUrl}
+                          alt={cert.title}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div
+                          className={`h-full bg-gradient-to-br ${cert.color} flex flex-col items-center justify-center text-white p-4`}
+                        >
+                          <div className="text-5xl mb-2">
+                            {getTrophyEmoji(cert.type)}
+                          </div>
+                          <div className="text-center">
+                            <div className="text-xs opacity-90 mb-1">WeighIn</div>
+                            <div className="text-sm">荣誉证书</div>
+                          </div>
+                        </div>
+                      )}
                       {/* 悬停显示操作按钮 */}
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Button size="sm" variant="secondary">
                           <Download className="w-4 h-4 mr-1" />
                           保存
-                        </Button>
-                        <Button size="sm" variant="secondary">
-                          <Share2 className="w-4 h-4 mr-1" />
-                          分享
                         </Button>
                       </div>
                     </div>
 
                     {/* 奖状信息 */}
-                    <div className="p-3">
-                      <div className="text-sm mb-1">{cert.title}</div>
+                    <div className="px-3 py-1.5">
+                      <div className="text-sm font-medium mb-0.5">{cert.title}</div>
                       <div className="text-xs text-gray-500">{cert.date}</div>
                     </div>
                   </Card>
@@ -625,11 +630,11 @@ export default function ProfilePage() {
               </Card>
             )}
 
-            {/* 分享提示 */}
+            {/* 保存提示 */}
             {certificates.length > 0 && (
               <Card className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
                 <p className="text-sm text-center text-purple-800">
-                  💡 点击奖状可以保存到相册或分享到朋友圈
+                  💡 点击奖状可以保存到相册
                 </p>
               </Card>
             )}
