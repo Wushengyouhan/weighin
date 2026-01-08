@@ -23,6 +23,7 @@ export default function CheckinPage() {
   const [lastWeekWeight, setLastWeekWeight] = useState<number | null>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const hasCheckedTimeRef = useRef(false)
 
   useEffect(() => {
     // 等待状态恢复完成
@@ -35,11 +36,14 @@ export default function CheckinPage() {
       return
     }
 
-    // 检查打卡时间
-    if (!isCheckInOpen()) {
-      alert('打卡时间已结束，请等待下次打卡时间')
-      router.push('/home')
-      return
+    // 检查打卡时间（只检查一次，避免重复弹窗）
+    if (!hasCheckedTimeRef.current) {
+      hasCheckedTimeRef.current = true
+      if (!isCheckInOpen()) {
+        alert('打卡时间已结束，请等待下次打卡时间')
+        router.push('/home')
+        return
+      }
     }
 
     // 获取历史打卡数据
