@@ -95,12 +95,43 @@ export async function settleWeekRanking(
       return a.checkinTime.getTime() - b.checkinTime.getTime() // 升序
     })
 
-    // 6. 分配排名并保存到 rewards 表
+    // 6. 获取该周的奖状配置（优先指定周配置，没有就用默认配置）
+    let certConfig = await db.cert_configs.findFirst({
+      where: { week_number: weekNumber },
+    })
+    
+    // 如果没有指定周配置，使用默认配置
+    if (!certConfig) {
+      certConfig = await db.cert_configs.findFirst({
+        where: { week_number: null },
+      })
+    }
+
+    // 7. 分配排名并保存到 rewards 表
     const rewards = []
     for (let i = 0; i < eligibleUsers.length; i++) {
       const user = eligibleUsers[i]
       const rank = i + 1
       const type = rank <= 3 ? rank : 4 // 1=冠军，2=亚军，3=季军，4=参与奖
+
+      // 根据 type 获取对应的底图URL
+      let certificateUrl: string | null = null
+      if (certConfig) {
+        switch (type) {
+          case 1: // 冠军
+            certificateUrl = certConfig.img_gold
+            break
+          case 2: // 亚军
+            certificateUrl = certConfig.img_silver
+            break
+          case 3: // 季军
+            certificateUrl = certConfig.img_bronze
+            break
+          case 4: // 参与奖
+            certificateUrl = certConfig.img_participate
+            break
+        }
+      }
 
       const reward = await db.rewards.create({
         data: {
@@ -109,7 +140,7 @@ export async function settleWeekRanking(
           weight_diff: user.weightDiff,
           rank: rank,
           type: type,
-          // certificate_url 会在生成奖状后更新（可选）
+          certificate_url: certificateUrl,
         },
       })
 
