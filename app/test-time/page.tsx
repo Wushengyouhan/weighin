@@ -23,6 +23,12 @@ export default function TestTimePage() {
   const [mockHour, setMockHour] = useState(10)
   const [mockMinute, setMockMinute] = useState(0)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [isClient, setIsClient] = useState(false)
+
+  // 标记为客户端渲染，避免水合错误
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // 每秒更新一次显示，以便看到实时变化
   useEffect(() => {
@@ -43,14 +49,15 @@ export default function TestTimePage() {
     setRefreshKey((prev) => prev + 1) // 触发重新渲染
   }
 
-  const currentDate = getCurrentDate()
-  const weekNumber = getWeekNumber()
-  const monday = getMonday()
-  const deadline = getCheckInDeadline()
-  const nextStart = getNextCheckInStart()
-  const checkInOpen = isCheckInOpen()
-  const timeUntilDeadline = getTimeUntilDeadline()
-  const daysUntilNext = getDaysUntilNextCheckIn()
+  // 只在客户端计算时间相关数据，避免水合错误
+  const currentDate = isClient ? getCurrentDate() : new Date()
+  const weekNumber = isClient ? getWeekNumber() : 0
+  const monday = isClient ? getMonday() : new Date()
+  const deadline = isClient ? getCheckInDeadline() : new Date()
+  const nextStart = isClient ? getNextCheckInStart() : new Date()
+  const checkInOpen = isClient ? isCheckInOpen() : false
+  const timeUntilDeadline = isClient ? getTimeUntilDeadline() : 0
+  const daysUntilNext = isClient ? getDaysUntilNextCheckIn() : 0
 
   const hours = Math.floor(timeUntilDeadline / (1000 * 60 * 60))
   const minutes = Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60))
