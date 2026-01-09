@@ -4,9 +4,9 @@ import { useAuthStore } from '@/store/auth-store'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import { BottomNav } from '@/components/BottomNav'
+import { AppHeader } from '@/components/AppHeader'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { FlipCountdown } from '@/components/FlipCountdown'
 import { Loading } from '@/components/Loading'
 import { Trophy, TrendingDown, Timer } from 'lucide-react'
@@ -95,27 +95,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white pb-20">
       {/* 顶部导航栏 */}
-      <header className="border-b border-gray-100 sticky top-0 bg-white z-10">
-        <div className="max-w-md mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">W</span>
-              </div>
-              <span className="text-xl font-semibold">WeighIn</span>
-            </div>
-            <button
-              onClick={() => router.push('/profile')}
-              className="flex items-center"
-            >
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={user?.avatar || undefined} />
-                <AvatarFallback>👤</AvatarFallback>
-              </Avatar>
-            </button>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       {/* 主内容区域 */}
       <main className="max-w-md mx-auto px-6 py-6 space-y-6">
@@ -163,7 +143,7 @@ export default function HomePage() {
                 已提交，等待今晚 21:00 结算
               </p>
               <Button
-                onClick={() => router.push('/profile')}
+                onClick={() => user?.id && router.push(`/profile/${user.id}`)}
                 variant="outline"
                 className="w-full"
               >
@@ -212,7 +192,7 @@ export default function HomePage() {
             </Card>
             <Card
               className="p-4 text-center cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => router.push('/profile')}
+              onClick={() => user?.id && router.push(`/profile/${user.id}`)}
             >
               <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-2">
                 <TrendingDown className="w-6 h-6 text-blue-600" />
@@ -221,7 +201,7 @@ export default function HomePage() {
             </Card>
             <Card
               className="p-4 text-center cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => router.push('/profile?tab=honors')}
+              onClick={() => user?.id && router.push(`/profile/${user.id}`)}
             >
               <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full mb-2">
                 <div className="text-2xl">🏆</div>

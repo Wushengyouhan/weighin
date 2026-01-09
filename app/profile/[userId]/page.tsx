@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { useAuthStore } from '@/store/auth-store'
 import { BottomNav } from '@/components/BottomNav'
+import { AppHeader } from '@/components/AppHeader'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loading } from '@/components/Loading'
@@ -27,13 +28,9 @@ import {
   Camera,
   Edit2,
   LogOut,
+  ArrowLeft,
 } from 'lucide-react'
-
-interface UserProfile {
-  id: string
-  nickname: string | null
-  avatar: string | null
-}
+import { createApiHeaders } from '@/lib/api-headers'
 
 interface CheckinStats {
   totalWeightLoss: string
@@ -77,9 +74,24 @@ interface Certificate {
   weekNumber: number
 }
 
-export default function ProfilePage() {
+export default function UserProfilePage() {
   const router = useRouter()
-  const { isLoggedIn, user, _hasHydrated } = useAuthStore()
+  const params = useParams()
+  const userId = params?.userId as string
+  const { isLoggedIn, user, logout, setUser, token, _hasHydrated } = useAuthStore()
+  const [isEditing, setIsEditing] = useState(false)
+  const [nickname, setNickname] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [checkinStats, setCheckinStats] = useState<CheckinStats | null>(null)
+  const [checkinHistory, setCheckinHistory] = useState<CheckinHistory[]>([])
+  const [chartData, setChartData] = useState<ChartData[]>([])
+  const [rewardStats, setRewardStats] = useState<RewardStats | null>(null)
+  const [certificates, setCertificates] = useState<Certificate[]>([])
+  const dataFetchedRef = useRef(false)
+
+  // 判断是否是查看自己的页面
+  const isOwnProfile = user?.id === userId
 
   useEffect(() => {
     // 等待状态恢复完成
@@ -92,34 +104,46 @@ export default function ProfilePage() {
       return
     }
 
-    // 重定向到动态路由
-    if (user?.id) {
-      router.replace(`/profile/${user.id}`)
+    if (!userId) {
+      router.push('/profile')
+      return
+    }
+
+    // 使用 ref 防止重复调用
+    if (!dataFetchedRef.current) {
+      dataFetchedRef.current = true
+      fetchUserData()
+      fetchCheckins()
+      fetchRewards()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn, _hasHydrated, user?.id])
-
-  // 等待重定向
-  return null
+  }, [isLoggedIn, _hasHydrated, userId])
 
   const fetchUserData = async () => {
     try {
-      const token = useAuthStore.getState().token
-      if (!token) return
+      if (!token || !userId) return
 
-      const response = await fetch('/api/user/profile', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await fetch(`/api/user/profile/${userId}`, {
+        headers: createApiHeaders(token),
       })
       const result = await response.json()
       if (result.code === 200) {
         setNickname(result.data.nickname || '')
         setAvatarUrl(result.data.avatar)
-        setUser(result.data)
+        // 如果是自己的页面，更新 store 中的用户信息
+        if (isOwnProfile) {
+          setUser(result.data)
+        }
+      } else if (result.code === 404) {
+        alert('用户不存在')
+        router.push('/home')
+      } else if (result.code === 400) {
+        alert(result.msg || '无效的用户ID')
+        router.push('/home')
       }
     } catch (error) {
       console.error('获取用户信息失败:', error)
+      alert('获取用户信息失败，请稍后再试')
     } finally {
       setLoading(false)
     }
@@ -127,13 +151,10 @@ export default function ProfilePage() {
 
   const fetchCheckins = async () => {
     try {
-      const token = useAuthStore.getState().token
-      if (!token) return
+      if (!token || !userId) return
 
-      const response = await fetch('/api/user/checkins', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await fetch(`/api/user/checkins/${userId}`, {
+        headers: createApiHeaders(token),
       })
       const result = await response.json()
       if (result.code === 200) {
@@ -148,13 +169,10 @@ export default function ProfilePage() {
 
   const fetchRewards = async () => {
     try {
-      const token = useAuthStore.getState().token
-      if (!token) return
+      if (!token || !userId) return
 
-      const response = await fetch('/api/user/rewards', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await fetch(`/api/user/rewards/${userId}`, {
+        headers: createApiHeaders(token),
       })
       const result = await response.json()
       if (result.code === 200) {
@@ -167,6 +185,8 @@ export default function ProfilePage() {
   }
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isOwnProfile) return
+
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -191,8 +211,6 @@ export default function ProfilePage() {
       }
       reader.readAsDataURL(file)
 
-      // 上传到 OSS
-      const token = useAuthStore.getState().token
       if (!token) {
         alert('未登录，请重新登录')
         return
@@ -227,8 +245,9 @@ export default function ProfilePage() {
   }
 
   const handleSave = async () => {
+    if (!isOwnProfile) return
+
     try {
-      const token = useAuthStore.getState().token
       if (!token) {
         alert('未登录，请重新登录')
         return
@@ -250,6 +269,8 @@ export default function ProfilePage() {
         setUser(result.data)
         setIsEditing(false)
         alert('个人信息已保存')
+        // 重新获取用户数据
+        fetchUserData()
       } else {
         alert(result.msg || '保存失败')
       }
@@ -292,22 +313,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-white pb-20">
       {/* 顶部导航栏 */}
-      <header className="border-b border-gray-100 sticky top-0 bg-white z-10">
-        <div className="max-w-md mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">W</span>
-              </div>
-              <span className="text-xl font-semibold">WeighIn</span>
-            </div>
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={avatarUrl || undefined} />
-              <AvatarFallback>👤</AvatarFallback>
-            </Avatar>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       {/* 主内容区域 */}
       <main className="max-w-md mx-auto px-6 py-6 space-y-6">
@@ -320,7 +326,7 @@ export default function ProfilePage() {
                 <AvatarImage src={avatarUrl || undefined} />
                 <AvatarFallback className="text-2xl">👤</AvatarFallback>
               </Avatar>
-              {isEditing && (
+              {isEditing && isOwnProfile && (
                 <label
                   htmlFor="avatar-upload"
                   className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors shadow-lg"
@@ -339,7 +345,7 @@ export default function ProfilePage() {
 
             {/* 昵称和操作区域 */}
             <div className="flex-1 space-y-4">
-              {isEditing ? (
+              {isEditing && isOwnProfile ? (
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="nickname">昵称</Label>
@@ -373,28 +379,43 @@ export default function ProfilePage() {
                     <h2 className="text-2xl font-semibold mb-1">
                       {nickname || '用户昵称'}
                     </h2>
-                    <p className="text-sm text-gray-500">
-                      点击编辑按钮修改个人信息
-                    </p>
+                    {!isOwnProfile && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.back()}
+                        className="mt-2 gap-2"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        返回
+                      </Button>
+                    )}
+                    {isOwnProfile && (
+                      <p className="text-sm text-gray-500">
+                        点击编辑按钮修改个人信息
+                      </p>
+                    )}
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => setIsEditing(true)}
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      编辑资料
-                    </Button>
-                    <Button
-                      onClick={handleLogout}
-                      variant="outline"
-                      className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      退出登录
-                    </Button>
-                  </div>
+                  {isOwnProfile && (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => setIsEditing(true)}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        编辑资料
+                      </Button>
+                      <Button
+                        onClick={handleLogout}
+                        variant="outline"
+                        className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        退出登录
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
             </div>

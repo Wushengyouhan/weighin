@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth-store'
 import { useEffect, useState, useRef } from 'react'
 import { BottomNav } from '@/components/BottomNav'
+import { AppHeader } from '@/components/AppHeader'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Loading } from '@/components/Loading'
@@ -25,7 +26,7 @@ interface HallOfFameUser {
 
 export default function HallOfFamePage() {
   const router = useRouter()
-  const { isLoggedIn, token, user, _hasHydrated } = useAuthStore()
+  const { isLoggedIn, token, _hasHydrated } = useAuthStore()
   const [users, setUsers] = useState<HallOfFameUser[]>([])
   const [loading, setLoading] = useState(true)
   const dataFetchedRef = useRef(false)
@@ -122,27 +123,7 @@ export default function HallOfFamePage() {
   return (
     <div className="min-h-screen bg-white pb-20">
       {/* 顶部导航栏 */}
-      <header className="border-b border-gray-100 sticky top-0 bg-white z-10">
-        <div className="max-w-md mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">W</span>
-              </div>
-              <span className="text-xl font-semibold">WeighIn</span>
-            </div>
-            <button
-              onClick={() => router.push('/profile')}
-              className="flex items-center"
-            >
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={user?.avatar || undefined} />
-                <AvatarFallback>👤</AvatarFallback>
-              </Avatar>
-            </button>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       {/* 主内容区域 */}
       <main className="max-w-md mx-auto px-6 py-6 space-y-6">
