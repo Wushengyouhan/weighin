@@ -201,7 +201,10 @@ export default function HomePage() {
         <div>
           <h3 className="mb-3 text-lg font-semibold text-gray-900">快捷入口</h3>
           <div className="grid grid-cols-3 gap-3">
-            <Card className="p-4 text-center">
+            <Card
+              className="p-4 text-center cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => router.push('/hall-of-fame')}
+            >
               <div className="inline-flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-full mb-2">
                 <Trophy className="w-6 h-6 text-yellow-600" />
               </div>
