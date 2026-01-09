@@ -55,10 +55,31 @@ export async function settleWeekRanking(
     }
 
     // 2. 计算每个用户的 weightDiff（只计算上周和本周都有打卡的用户）
-    const lastWeekNumber = weekNumber - 1
+    // 计算上一周的周编号（处理跨年情况）
+    let lastWeekNumber: number
+    const year = Math.floor(weekNumber / 100)
+    const week = weekNumber % 100
+    
+    if (week === 1) {
+      // 如果是第1周，上一周是上一年的最后一周
+      // 需要找到202601周的上一周，也就是2025年12月22日（周一）到12月28日（周日）这一周
+      // 计算202601周的周一，然后往前推7天，就是上一周的周一
+      const { getWeekMonday } = await import('./week')
+      const weekMonday = getWeekMonday(weekNumber)
+      const lastWeekMonday = new Date(weekMonday)
+      lastWeekMonday.setDate(weekMonday.getDate() - 7)
+      lastWeekNumber = getWeekNumber(lastWeekMonday)
+      console.log(`第1周结算: 本周=${weekNumber}, 上周周一=${lastWeekMonday.toLocaleDateString('zh-CN')}, 上周周编号=${lastWeekNumber}`)
+    } else {
+      // 其他周，直接减1
+      lastWeekNumber = weekNumber - 1
+    }
+    
+    console.log(`结算周 ${weekNumber}: 查找上周 ${lastWeekNumber} 的打卡记录`)
     const lastCheckins = await db.checkins.findMany({
       where: { week_number: lastWeekNumber },
     })
+    console.log(`找到上周打卡记录 ${lastCheckins.length} 条`)
 
     // 3. 创建上周打卡用户的 Map（用于快速查找）
     const lastCheckinMap = new Map(
@@ -70,9 +91,14 @@ export async function settleWeekRanking(
       .filter((current) => lastCheckinMap.has(current.user_id.toString()))
       .map((current) => {
         const last = lastCheckinMap.get(current.user_id.toString())!
+        const weightDiff = Number(last.weight) - Number(current.weight)
+        
+        // 调试日志
+        console.log(`用户 ${current.user_id}: 上周体重=${Number(last.weight)}, 本周体重=${Number(current.weight)}, weightDiff=${weightDiff}`)
+        
         return {
           userId: current.user_id,
-          weightDiff: Number(last.weight) - Number(current.weight),
+          weightDiff: weightDiff,
           currentWeight: Number(current.weight),
           lastWeight: Number(last.weight),
           checkinTime: current.created_at,

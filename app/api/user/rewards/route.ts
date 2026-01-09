@@ -14,10 +14,13 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 获取所有奖励记录，按时间倒序
+    // 获取所有奖励记录，按周编号倒序（最新的周在前面）
     const rewards = await db.rewards.findMany({
       where: { user_id: userId },
-      orderBy: { created_at: 'desc' },
+      orderBy: [
+        { week_number: 'desc' }, // 先按周编号倒序
+        { created_at: 'desc' }, // 如果周编号相同，按创建时间倒序
+      ],
     })
 
     // 统计各类奖励数量
