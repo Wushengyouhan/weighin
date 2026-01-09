@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth-store'
 import { BottomNav } from '@/components/BottomNav'
@@ -89,6 +89,7 @@ export default function ProfilePage() {
   const [chartData, setChartData] = useState<ChartData[]>([])
   const [rewardStats, setRewardStats] = useState<RewardStats | null>(null)
   const [certificates, setCertificates] = useState<Certificate[]>([])
+  const dataFetchedRef = useRef(false)
 
   useEffect(() => {
     // 等待状态恢复完成
@@ -100,10 +101,16 @@ export default function ProfilePage() {
       router.push('/login')
       return
     }
-    fetchUserData()
-    fetchCheckins()
-    fetchRewards()
-  }, [isLoggedIn, _hasHydrated, router])
+
+    // 使用 ref 防止重复调用
+    if (!dataFetchedRef.current) {
+      dataFetchedRef.current = true
+      fetchUserData()
+      fetchCheckins()
+      fetchRewards()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, _hasHydrated])
 
   const fetchUserData = async () => {
     try {

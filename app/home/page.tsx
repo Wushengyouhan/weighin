@@ -2,7 +2,7 @@
 
 import { useAuthStore } from '@/store/auth-store'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { BottomNav } from '@/components/BottomNav'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,7 @@ export default function HomePage() {
   const [checkInStatus, setCheckInStatus] = useState<CheckInStatus | null>(null)
   const [timeUntilDeadline, setTimeUntilDeadline] = useState(0)
   const [daysUntilNext, setDaysUntilNext] = useState(0)
+  const statusFetchedRef = useRef(false)
 
   useEffect(() => {
     // 等待状态恢复完成
@@ -38,13 +39,20 @@ export default function HomePage() {
 
     if (!isLoggedIn) {
       router.push('/login')
-    } else {
-      fetchCheckInStatus()
-      updateCountdown()
-      const timer = setInterval(updateCountdown, 1000)
-      return () => clearInterval(timer)
+      return
     }
-  }, [isLoggedIn, _hasHydrated, router])
+
+    // 使用 ref 防止重复调用
+    if (!statusFetchedRef.current) {
+      statusFetchedRef.current = true
+      fetchCheckInStatus()
+    }
+    
+    updateCountdown()
+    const timer = setInterval(updateCountdown, 1000)
+    return () => clearInterval(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, _hasHydrated])
 
   const fetchCheckInStatus = async () => {
     try {

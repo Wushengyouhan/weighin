@@ -24,6 +24,7 @@ export default function CheckinPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const hasCheckedTimeRef = useRef(false)
+  const historyFetchedRef = useRef(false)
 
   useEffect(() => {
     // 等待状态恢复完成
@@ -46,9 +47,13 @@ export default function CheckinPage() {
       }
     }
 
-    // 获取历史打卡数据
-    fetchCheckinHistory()
-  }, [isLoggedIn, _hasHydrated, router])
+    // 使用 ref 防止重复调用
+    if (!historyFetchedRef.current) {
+      historyFetchedRef.current = true
+      fetchCheckinHistory()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, _hasHydrated])
 
   const fetchCheckinHistory = async () => {
     try {
