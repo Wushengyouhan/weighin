@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth-store'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { BottomNav } from '@/components/BottomNav'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
@@ -42,20 +42,7 @@ export default function LeaderboardPage() {
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
   const [availableWeeks, setAvailableWeeks] = useState<Array<{ week: number; year: number; weekNumber: number; label: string }>>([])
-
-  useEffect(() => {
-    // 等待状态恢复完成
-    if (!_hasHydrated) {
-      return
-    }
-
-    if (!isLoggedIn) {
-      router.push('/login')
-    } else {
-      fetchAvailableWeeks()
-      fetchLeaderboard()
-    }
-  }, [isLoggedIn, _hasHydrated, router])
+  const weeksFetchedRef = useRef(false)
 
   const fetchAvailableWeeks = async () => {
     try {
@@ -73,7 +60,7 @@ export default function LeaderboardPage() {
         setAvailableWeeks(weeks)
         
         // 如果没有选择周，默认选择第一个（最新的周）
-        if (!selectedWeek && weeks.length > 0) {
+        if (weeks.length > 0) {
           setSelectedWeek(weeks[0].week)
           setSelectedYear(weeks[0].year)
         }
@@ -84,16 +71,29 @@ export default function LeaderboardPage() {
   }
 
   useEffect(() => {
-    if (isLoggedIn && _hasHydrated && availableWeeks.length > 0) {
-      // 如果没有选择周，默认选择第一个（最新的周）
-      if (!selectedWeek && availableWeeks[0]) {
-        setSelectedWeek(availableWeeks[0].week)
-        setSelectedYear(availableWeeks[0].year)
-      } else if (selectedWeek) {
-        fetchLeaderboard(selectedWeek, selectedYear)
-      }
+    // 等待状态恢复完成
+    if (!_hasHydrated) {
+      return
     }
-  }, [selectedWeek, selectedYear, isLoggedIn, _hasHydrated, availableWeeks])
+
+    if (!isLoggedIn) {
+      router.push('/login')
+      return
+    }
+
+    // 使用 ref 防止重复调用
+    if (token && !weeksFetchedRef.current) {
+      weeksFetchedRef.current = true
+      fetchAvailableWeeks()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, _hasHydrated, token])
+
+  useEffect(() => {
+    if (isLoggedIn && _hasHydrated && selectedWeek && selectedYear) {
+      fetchLeaderboard(selectedWeek, selectedYear)
+    }
+  }, [selectedWeek, selectedYear, isLoggedIn, _hasHydrated])
 
   const fetchLeaderboard = async (week?: number, year?: number) => {
     try {
