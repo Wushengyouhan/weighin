@@ -7,7 +7,6 @@ import { BottomNav } from '@/components/BottomNav'
 import { AppHeader } from '@/components/AppHeader'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -16,8 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Loading } from '@/components/Loading'
-import { Trophy, TrendingDown, Crown, Medal, Clock } from 'lucide-react'
-import { getWeekNumber, getWeekMonday } from '@/lib/week'
+import { Trophy, TrendingDown } from 'lucide-react'
 import { createApiHeaders } from '@/lib/api-headers'
 
 interface LeaderboardData {
@@ -129,35 +127,6 @@ export default function LeaderboardPage() {
     return null
   }
 
-  // 计算结算时间提示
-  const getSettlementTimeText = () => {
-    if (!data) return ''
-    
-    if (data.settled && data.settledAt) {
-      const settledDate = new Date(data.settledAt)
-      return `结算时间：${settledDate.toLocaleString('zh-CN', { 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      })}`
-    } else {
-      // 计算本周结算时间（下周一 21:00）
-      const weekMonday = getWeekMonday(data.weekNumber)
-      const nextMonday = new Date(weekMonday)
-      nextMonday.setDate(weekMonday.getDate() + 7)
-      nextMonday.setHours(21, 0, 0, 0)
-      
-      const weekDay = nextMonday.toLocaleDateString('zh-CN', { weekday: 'short' })
-      return `本周结算时间：${nextMonday.toLocaleDateString('zh-CN', { 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit'
-      })}（${weekDay}）21:00`
-    }
-  }
-
   return (
     <div className="min-h-screen bg-white pb-20">
       {/* 顶部导航栏 */}
@@ -191,16 +160,6 @@ export default function LeaderboardPage() {
             </SelectContent>
           </Select>
         </div>
-
-        {/* 结算时间提示 */}
-        {data && (
-          <Card className="p-3 bg-blue-50 border-blue-200">
-            <div className="flex items-center gap-2 text-sm text-blue-800">
-              <Clock className="w-4 h-4" />
-              <p className="text-center flex-1">{getSettlementTimeText()}</p>
-            </div>
-          </Card>
-        )}
 
         {loading ? (
           <Loading />
@@ -255,36 +214,25 @@ function TopThreeCard({ user, rank }: { user: LeaderboardData['users'][0], rank:
   const config = {
     1: {
       bg: 'from-yellow-50 to-yellow-100',
-      badge: 'from-yellow-400 to-yellow-600',
-      icon: Crown,
-      title: '冠军',
-      iconColor: 'text-yellow-600',
+      medal: '🥇',
     },
     2: {
       bg: 'from-gray-50 to-gray-100',
-      badge: 'from-gray-300 to-gray-500',
-      icon: Medal,
-      title: '亚军',
-      iconColor: 'text-gray-500',
+      medal: '🥈',
     },
     3: {
       bg: 'from-orange-50 to-orange-100',
-      badge: 'from-orange-400 to-orange-600',
-      icon: Medal,
-      title: '季军',
-      iconColor: 'text-orange-600',
+      medal: '🥉',
     },
   }[rank]
-
-  const Icon = config.icon
 
   return (
     <Card className={`p-5 bg-gradient-to-br ${config.bg} shadow-lg`}>
       <div className="flex items-center gap-4">
         {/* 排名图标 */}
         <div className="flex-shrink-0">
-          <div className={`w-12 h-12 bg-gradient-to-br ${config.badge} rounded-full flex items-center justify-center text-white font-bold text-lg`}>
-            {rank}
+          <div className="w-12 h-12 flex items-center justify-center text-4xl">
+            {config.medal}
           </div>
         </div>
 
@@ -306,20 +254,10 @@ function TopThreeCard({ user, rank }: { user: LeaderboardData['users'][0], rank:
             >
               {user.nickname}
             </p>
-            <Badge className={`${rank === 1 ? 'bg-yellow-600' : rank === 2 ? 'bg-gray-600' : 'bg-orange-700'} text-white border-0`}>
-              {config.title}
-            </Badge>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <TrendingDown className="w-4 h-4" />
             <span>减重 {user.weightDiff.toFixed(1)} kg</span>
-          </div>
-        </div>
-
-        {/* 奖状图标 */}
-        <div className="flex-shrink-0">
-          <div className="w-12 h-12 bg-white/20 rounded border-2 border-white/40 flex items-center justify-center">
-            <Trophy className={`w-6 h-6 ${config.iconColor}`} />
           </div>
         </div>
       </div>
@@ -337,9 +275,11 @@ function RankCard({ user }: { user: LeaderboardData['users'][0] }) {
       onClick={() => router.push(`/profile/${user.userId}`)}
     >
       <div className="flex items-center gap-3">
-        {/* 排名 */}
-        <div className="w-8 text-center text-gray-500 font-medium">
-          #{user.rank}
+        {/* 排名图标 */}
+        <div className="flex-shrink-0">
+          <div className="w-10 h-10 flex items-center justify-center text-3xl">
+            🎖️
+          </div>
         </div>
 
         {/* 头像 */}

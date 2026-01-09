@@ -9,22 +9,30 @@ import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loading } from '@/components/Loading'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
-  LineChart,
-  Line,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart'
+import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
+  Area,
+  AreaChart,
 } from 'recharts'
 import {
   TrendingDown,
   Award,
-  Download,
   Camera,
   Edit2,
   LogOut,
@@ -88,6 +96,7 @@ export default function UserProfilePage() {
   const [chartData, setChartData] = useState<ChartData[]>([])
   const [rewardStats, setRewardStats] = useState<RewardStats | null>(null)
   const [certificates, setCertificates] = useState<Certificate[]>([])
+  const [previewCert, setPreviewCert] = useState<Certificate | null>(null)
   const dataFetchedRef = useRef(false)
 
   // 判断是否是查看自己的页面
@@ -294,6 +303,7 @@ export default function UserProfilePage() {
     return '🎖️'
   }
 
+
   // 等待状态恢复完成
   if (!_hasHydrated) {
     return <Loading />
@@ -303,8 +313,48 @@ export default function UserProfilePage() {
     return null
   }
 
+  // 处理图表数据：显示最近12周的数据
+  const getProcessedChartData = () => {
+    if (checkinHistory.length === 0) return []
+
+    const sortedHistory = [...checkinHistory].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    )
+
+    // 获取所有唯一的周
+    const weekMap = new Map<string, { weekNumber: number; weight: number; date: Date }>()
+    sortedHistory.forEach((item) => {
+      const weekKey = item.week
+      if (!weekMap.has(weekKey) || item.weight > 0) {
+        weekMap.set(weekKey, {
+          weekNumber: item.weekNumber,
+          weight: item.weight,
+          date: new Date(item.createdAt),
+        })
+      }
+    })
+
+    // 转换为数组并按周编号排序，取最近12周
+    const weeks = Array.from(weekMap.values())
+      .sort((a, b) => a.weekNumber - b.weekNumber)
+      .slice(-12) // 只显示最近12周
+
+    return weeks.map((item) => {
+      const weekNumber = item.weekNumber
+      const year = Math.floor(weekNumber / 100)
+      const week = weekNumber % 100
+      return {
+        label: `${year}W${week}`,
+        weight: item.weight,
+        date: item.date,
+      }
+    })
+  }
+
+  const processedChartData = getProcessedChartData()
+
   // 计算图表 Y 轴范围
-  const weights = chartData.map((d) => d.weight)
+  const weights = processedChartData.map((d) => d.weight).filter((w) => w > 0)
   const minWeight = weights.length > 0 ? Math.min(...weights) : 0
   const maxWeight = weights.length > 0 ? Math.max(...weights) : 100
   const yAxisMin = Math.max(0, Math.floor(minWeight - 2))
@@ -318,8 +368,8 @@ export default function UserProfilePage() {
       {/* 主内容区域 */}
       <main className="max-w-md mx-auto px-6 py-6 space-y-6">
         {/* 个人信息设置板块 */}
-        <Card className="p-6">
-          <div className="flex items-start gap-6">
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-start gap-4 sm:gap-6">
             {/* 头像区域 */}
             <div className="relative">
               <Avatar className="w-24 h-24 ring-4 ring-gray-100">
@@ -344,7 +394,7 @@ export default function UserProfilePage() {
             </div>
 
             {/* 昵称和操作区域 */}
-            <div className="flex-1 space-y-4">
+            <div className="flex-1 space-y-4 min-w-0">
               {isEditing && isOwnProfile ? (
                 <>
                   <div className="space-y-2">
@@ -397,22 +447,24 @@ export default function UserProfilePage() {
                     )}
                   </div>
                   {isOwnProfile && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5 min-w-0">
                       <Button
                         onClick={() => setIsEditing(true)}
                         variant="outline"
-                        className="gap-2"
+                        className="flex-1 gap-1 text-xs px-2 h-8 min-w-0"
+                        size="sm"
                       >
-                        <Edit2 className="w-4 h-4" />
-                        编辑资料
+                        <Edit2 className="w-3 h-3 shrink-0" />
+                        <span className="truncate">编辑</span>
                       </Button>
                       <Button
                         onClick={handleLogout}
                         variant="outline"
-                        className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="flex-1 gap-1 text-xs px-2 h-8 min-w-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        size="sm"
                       >
-                        <LogOut className="w-4 h-4" />
-                        退出登录
+                        <LogOut className="w-3 h-3 shrink-0" />
+                        <span className="truncate">退出</span>
                       </Button>
                     </div>
                   )}
@@ -482,30 +534,82 @@ export default function UserProfilePage() {
             </div>
 
             {/* 趋势图 */}
-            {chartData.length > 0 && (
+            {checkinHistory.length > 0 && (
               <Card className="p-6">
-                <div className="flex items-center justify-between mb-6">
+                <div className="mb-4">
                   <h3 className="flex items-center gap-2">
                     <TrendingDown className="w-5 h-5 text-blue-600" />
                     体重变化曲线
                   </h3>
                 </div>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis domain={[yAxisMin, yAxisMax]} />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="weight"
-                      stroke="#8b5cf6"
-                      strokeWidth={3}
-                      dot={{ fill: '#8b5cf6', r: 5 }}
-                      activeDot={{ r: 7 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+
+                {processedChartData.length > 0 && (
+                  <ChartContainer
+                    config={{
+                      weight: {
+                        label: '体重',
+                        color: '#22c55e',
+                      },
+                    }}
+                    className="h-[300px] w-full"
+                  >
+                    <AreaChart data={processedChartData}>
+                      <defs>
+                        <linearGradient id="weightGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--color-weight)" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="var(--color-weight)" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis
+                        dataKey="label"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                        className="text-xs text-muted-foreground"
+                        ticks={processedChartData.length > 0 ? [
+                          processedChartData[0].label,
+                          processedChartData[processedChartData.length - 1].label
+                        ] : []}
+                      />
+                      <YAxis
+                        domain={[yAxisMin, yAxisMax]}
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={2}
+                        width={30}
+                        className="text-xs text-muted-foreground"
+                        tickFormatter={(value) => `${value}`}
+                      />
+                      <ChartTooltip
+                        cursor={false}
+                        content={
+                          <ChartTooltipContent
+                            indicator="dot"
+                            formatter={(value) => {
+                              const numValue = typeof value === 'number' ? value : parseFloat(String(value))
+                              return numValue > 0 ? [`${numValue.toFixed(1)} kg`, '体重'] : ['暂无数据', '体重']
+                            }}
+                          />
+                        }
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="weight"
+                        stroke="var(--color-weight)"
+                        fill="url(#weightGradient)"
+                        strokeWidth={2.5}
+                        dot={{ 
+                          fill: 'white', 
+                          stroke: 'var(--color-weight)', 
+                          strokeWidth: 2,
+                          r: 4 
+                        }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </AreaChart>
+                  </ChartContainer>
+                )}
               </Card>
             )}
 
@@ -605,7 +709,10 @@ export default function UserProfilePage() {
                     className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group p-0"
                   >
                     {/* 奖状图片区域 */}
-                    <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
+                    <div 
+                      className="relative aspect-square w-full overflow-hidden bg-gray-100 cursor-pointer"
+                      onClick={() => setPreviewCert(cert)}
+                    >
                       {cert.certificateUrl ? (
                         <img
                           src={cert.certificateUrl}
@@ -625,13 +732,6 @@ export default function UserProfilePage() {
                           </div>
                         </div>
                       )}
-                      {/* 悬停显示操作按钮 */}
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Button size="sm" variant="secondary">
-                          <Download className="w-4 h-4 mr-1" />
-                          保存
-                        </Button>
-                      </div>
                     </div>
 
                     {/* 奖状信息 */}
@@ -662,6 +762,36 @@ export default function UserProfilePage() {
 
       {/* 底部导航栏 */}
       <BottomNav />
+
+      {/* 预览对话框 */}
+      <Dialog open={!!previewCert} onOpenChange={(open) => !open && setPreviewCert(null)}>
+        <DialogContent className="max-w-4xl p-4">
+          <DialogHeader>
+            <DialogTitle>{previewCert?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center items-center">
+            {previewCert?.certificateUrl ? (
+              <img
+                src={previewCert.certificateUrl}
+                alt={previewCert.title}
+                className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              />
+            ) : (
+              <div
+                className={`w-full aspect-square bg-gradient-to-br ${previewCert?.color} flex flex-col items-center justify-center text-white p-8 rounded-lg`}
+              >
+                <div className="text-8xl mb-4">
+                  {previewCert && getTrophyEmoji(previewCert.type)}
+                </div>
+                <div className="text-center">
+                  <div className="text-lg opacity-90 mb-2">WeighIn</div>
+                  <div className="text-xl">荣誉证书</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

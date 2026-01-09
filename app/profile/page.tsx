@@ -8,6 +8,12 @@ import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loading } from '@/components/Loading'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
@@ -23,7 +29,6 @@ import {
 import {
   TrendingDown,
   Award,
-  Download,
   Camera,
   Edit2,
   LogOut,
@@ -80,6 +85,7 @@ interface Certificate {
 export default function ProfilePage() {
   const router = useRouter()
   const { isLoggedIn, user, _hasHydrated } = useAuthStore()
+  const [previewCert, setPreviewCert] = useState<Certificate | null>(null)
 
   useEffect(() => {
     // 等待状态恢复完成
@@ -312,8 +318,8 @@ export default function ProfilePage() {
       {/* 主内容区域 */}
       <main className="max-w-md mx-auto px-6 py-6 space-y-6">
         {/* 个人信息设置板块 */}
-        <Card className="p-6">
-          <div className="flex items-start gap-6">
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-start gap-4 sm:gap-6">
             {/* 头像区域 */}
             <div className="relative">
               <Avatar className="w-24 h-24 ring-4 ring-gray-100">
@@ -338,7 +344,7 @@ export default function ProfilePage() {
             </div>
 
             {/* 昵称和操作区域 */}
-            <div className="flex-1 space-y-4">
+            <div className="flex-1 space-y-4 min-w-0">
               {isEditing ? (
                 <>
                   <div className="space-y-2">
@@ -377,22 +383,24 @@ export default function ProfilePage() {
                       点击编辑按钮修改个人信息
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5 min-w-0">
                     <Button
                       onClick={() => setIsEditing(true)}
                       variant="outline"
-                      className="gap-2"
+                      className="flex-1 gap-1 text-xs px-2 h-8 min-w-0"
+                      size="sm"
                     >
-                      <Edit2 className="w-4 h-4" />
-                      编辑资料
+                      <Edit2 className="w-3 h-3 shrink-0" />
+                      <span className="truncate">编辑</span>
                     </Button>
                     <Button
                       onClick={handleLogout}
                       variant="outline"
-                      className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="flex-1 gap-1 text-xs px-2 h-8 min-w-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      size="sm"
                     >
-                      <LogOut className="w-4 h-4" />
-                      退出登录
+                      <LogOut className="w-3 h-3 shrink-0" />
+                      <span className="truncate">退出</span>
                     </Button>
                   </div>
                 </>
@@ -584,7 +592,10 @@ export default function ProfilePage() {
                     className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group p-0"
                   >
                     {/* 奖状图片区域 */}
-                    <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
+                    <div 
+                      className="relative aspect-square w-full overflow-hidden bg-gray-100 cursor-pointer"
+                      onClick={() => setPreviewCert(cert)}
+                    >
                       {cert.certificateUrl ? (
                         <img
                           src={cert.certificateUrl}
@@ -604,13 +615,6 @@ export default function ProfilePage() {
                           </div>
                         </div>
                       )}
-                      {/* 悬停显示操作按钮 */}
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Button size="sm" variant="secondary">
-                          <Download className="w-4 h-4 mr-1" />
-                          保存
-                        </Button>
-                      </div>
                     </div>
 
                     {/* 奖状信息 */}
@@ -627,11 +631,11 @@ export default function ProfilePage() {
               </Card>
             )}
 
-            {/* 保存提示 */}
+            {/* 预览提示 */}
             {certificates.length > 0 && (
               <Card className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
                 <p className="text-sm text-center text-purple-800">
-                  💡 点击奖状可以保存到相册
+                  💡 点击奖状可以放大预览
                 </p>
               </Card>
             )}
@@ -641,6 +645,36 @@ export default function ProfilePage() {
 
       {/* 底部导航栏 */}
       <BottomNav />
+
+      {/* 预览对话框 */}
+      <Dialog open={!!previewCert} onOpenChange={(open) => !open && setPreviewCert(null)}>
+        <DialogContent className="max-w-4xl p-4">
+          <DialogHeader>
+            <DialogTitle>{previewCert?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center items-center">
+            {previewCert?.certificateUrl ? (
+              <img
+                src={previewCert.certificateUrl}
+                alt={previewCert.title}
+                className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              />
+            ) : (
+              <div
+                className={`w-full aspect-square bg-gradient-to-br ${previewCert?.color} flex flex-col items-center justify-center text-white p-8 rounded-lg`}
+              >
+                <div className="text-8xl mb-4">
+                  {previewCert && getTrophyEmoji(previewCert.type)}
+                </div>
+                <div className="text-center">
+                  <div className="text-lg opacity-90 mb-2">WeighIn</div>
+                  <div className="text-xl">荣誉证书</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
