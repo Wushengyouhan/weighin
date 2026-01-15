@@ -1,16 +1,7 @@
 name: Build and Push Docker Image
 
 on:
-  push:
-    branches:
-      - main
-      - master
-    tags:
-      - 'v*'
-  pull_request:
-    branches:
-      - main
-      - master
+  # 只支持手动触发
   workflow_dispatch:
 
 env:
@@ -53,7 +44,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
