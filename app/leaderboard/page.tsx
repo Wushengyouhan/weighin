@@ -224,7 +224,10 @@ function TopThreeCard({ user, rank }: { user: LeaderboardData['users'][0], rank:
       bg: 'from-orange-50 to-orange-100',
       medal: '🥉',
     },
-  }[rank]
+  }[rank] || {
+    bg: 'from-gray-50 to-gray-100',
+    medal: '🎖️',
+  }
 
   return (
     <Card className={`p-5 bg-gradient-to-br ${config.bg} shadow-lg`}>
