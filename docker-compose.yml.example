@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  app:
+    # 本地构建（不包含敏感信息）
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # 或直接使用已构建的镜像
+    # image: your-registry.cn-hangzhou.cr.aliyuncs.com/your-namespace/weighin:latest
+    
+    image: weighin:latest
+    ports:
+      - "3000:3000"
+    
+    # 环境变量配置（复制此文件为 docker-compose.yml 并填入实际值）
+    # 注意：docker-compose.yml 已加入 .gitignore，不会提交到仓库
+    environment:
+      - DATABASE_URL=mysql://user:password@host:3306/database
+      - JWT_SECRET=your-secret-key-here
+      - OSS_REGION=oss-cn-wuhan-lr
+      - OSS_ACCESS_KEY_ID=your-access-key-id
+      - OSS_ACCESS_KEY_SECRET=your-access-key-secret
+      - OSS_BUCKET=weighin-media
+      - OSS_ENDPOINT=https://oss-cn-wuhan-lr.aliyuncs.com
+      - ADMIN_SECRET=your-admin-secret
+      - NODE_ENV=production
+    
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
