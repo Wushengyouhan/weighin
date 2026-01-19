@@ -16,8 +16,9 @@ services:
     # 环境变量配置（复制此文件为 docker-compose.yml 并填入实际值）
     # 注意：docker-compose.yml 已加入 .gitignore，不会提交到仓库
     environment:
-      # 注意：数据库连接字符串，确保 MySQL 服务器时区为 Asia/Shanghai
-      # 代码中已配置会话时区为 +08:00，所有时间按北京时间保存
+      # 时区配置：设置为北京时间，确保周编号计算和时间展示正确
+      - TZ=Asia/Shanghai
+      # 注意：数据库连接字符串，数据库存储 UTC 时间（业界标准）
       - DATABASE_URL=mysql://user:password@host:3306/database
       - JWT_SECRET=your-secret-key-here
       - OSS_REGION=oss-cn-wuhan-lr

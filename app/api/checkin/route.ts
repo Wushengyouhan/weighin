@@ -114,6 +114,9 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // 使用模拟时间（如果有）或真实时间
+    const checkinTime = mockDate
+
     let checkin
     if (existingCheckin) {
       // 更新现有记录
@@ -122,17 +125,18 @@ export async function POST(request: NextRequest) {
         data: {
           weight: weightNum,
           photo_url: photoUrl,
-          updated_at: new Date(),
+          updated_at: checkinTime,
         },
       })
     } else {
-      // 创建新记录
+      // 创建新记录，手动设置 created_at 为模拟时间
       checkin = await db.checkins.create({
         data: {
           user_id: userId,
           weight: weightNum,
           photo_url: photoUrl,
           week_number: weekNumber,
+          created_at: checkinTime,
         },
       })
     }

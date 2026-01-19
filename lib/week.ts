@@ -62,6 +62,8 @@ export function getWeekNumber(date?: Date): number {
 
 /**
  * 获取本周一的日期（00:00:00）
+ * 注意：此函数依赖服务器时区，如果服务器时区是 Asia/Shanghai，则按北京时间计算
+ * 如果服务器时区不是 Asia/Shanghai，计算结果可能不准确
  */
 export function getMonday(date?: Date): Date {
   if (!date) date = getCurrentDate()
