@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id        BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
-  nickname  String?    @db.VarChar(50)
-  avatar    String?    @db.VarChar(500)
-  createdAt DateTime   @default(now()) @map("created_at") @db.DateTime(0)
-  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
-  checkins  checkins[]
-  rewards   rewards[]
-  auths     UserAuth[]
+  id             BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  nickname       String?    @db.VarChar(50)
+  avatar         String?    @db.VarChar(500)
+  characterImage String?    @map("character_image") @db.VarChar(500)
+  createdAt      DateTime   @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt      DateTime   @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  checkins       checkins[]
+  rewards        rewards[]
+  auths          UserAuth[]
 
   @@index([createdAt], map: "idx_created_at")
   @@map("users")

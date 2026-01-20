@@ -53,6 +53,13 @@ export default function AdminSettlePage() {
   const [configResult, setConfigResult] = useState<{ success: boolean; message: string } | null>(null)
   const [uploading, setUploading] = useState<{ [key: string]: boolean }>({})
 
+  // 用户角色图片上传相关状态
+  const [characterUserId, setCharacterUserId] = useState('')
+  const [characterFile, setCharacterFile] = useState<File | null>(null)
+  const [characterUploading, setCharacterUploading] = useState(false)
+  const [characterResult, setCharacterResult] = useState<{ success: boolean; message: string; url?: string } | null>(null)
+  const [characterImageUrl, setCharacterImageUrl] = useState<string | null>(null)
+
   const handleSingleSettle = async () => {
     if (!week) {
       alert('请输入周数')
@@ -280,6 +287,92 @@ export default function AdminSettlePage() {
     }
   }
 
+  // 获取用户角色图片
+  const handleGetCharacterImage = async () => {
+    if (!characterUserId) {
+      alert('请输入用户ID')
+      return
+    }
+
+    setCharacterResult(null)
+    setCharacterImageUrl(null)
+
+    try {
+      const response = await fetch(`/api/admin/user-character?userId=${characterUserId}`)
+      const data = await response.json()
+
+      if (data.code === 200) {
+        setCharacterImageUrl(data.data.characterImage)
+        setCharacterResult({
+          success: true,
+          message: data.data.characterImage ? '已找到用户角色图片' : '该用户尚未上传角色图片',
+          url: data.data.characterImage || undefined,
+        })
+      } else {
+        setCharacterResult({
+          success: false,
+          message: data.msg || '获取失败',
+        })
+      }
+    } catch (error: any) {
+      setCharacterResult({
+        success: false,
+        message: error.message || '获取失败',
+      })
+    }
+  }
+
+  // 上传用户角色图片
+  const handleUploadCharacterImage = async () => {
+    if (!characterUserId) {
+      alert('请输入用户ID')
+      return
+    }
+
+    if (!characterFile) {
+      alert('请选择图片文件')
+      return
+    }
+
+    setCharacterUploading(true)
+    setCharacterResult(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('userId', characterUserId)
+      formData.append('file', characterFile)
+
+      const response = await fetch('/api/admin/user-character', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (data.code === 200) {
+        setCharacterImageUrl(data.data.url)
+        setCharacterResult({
+          success: true,
+          message: '上传成功',
+          url: data.data.url,
+        })
+        setCharacterFile(null)
+      } else {
+        setCharacterResult({
+          success: false,
+          message: data.msg || '上传失败',
+        })
+      }
+    } catch (error: any) {
+      setCharacterResult({
+        success: false,
+        message: error.message || '上传失败',
+      })
+    } finally {
+      setCharacterUploading(false)
+    }
+  }
+
   // 移除自动加载，只在用户明确需要时加载
 
   return (
@@ -293,7 +386,7 @@ export default function AdminSettlePage() {
 
         {/* 标签页 */}
         <Tabs defaultValue="settle" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="settle" className="flex items-center gap-2">
               <Trophy className="w-4 h-4" />
               结算管理
@@ -301,6 +394,10 @@ export default function AdminSettlePage() {
             <TabsTrigger value="config" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
               奖励配置
+            </TabsTrigger>
+            <TabsTrigger value="character" className="flex items-center gap-2">
+              <ImageIcon className="w-4 h-4" />
+              用户角色
             </TabsTrigger>
           </TabsList>
 
@@ -772,6 +869,131 @@ export default function AdminSettlePage() {
                     <li>可以点击上传按钮上传图片到OSS，或直接输入图片URL</li>
                     <li>上传成功后，URL会自动填充到输入框</li>
                     <li>配置优先级：指定周配置 &gt; 默认配置</li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* 用户角色图片管理标签页 */}
+          <TabsContent value="character" className="space-y-6">
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold mb-4">用户角色图片管理</h2>
+              <div className="space-y-6">
+                {/* 用户ID输入 */}
+                <div className="space-y-2">
+                  <Label htmlFor="characterUserId">用户ID</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="characterUserId"
+                      type="text"
+                      value={characterUserId}
+                      onChange={(e) => setCharacterUserId(e.target.value)}
+                      placeholder="请输入用户ID"
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={handleGetCharacterImage}
+                      variant="outline"
+                      disabled={!characterUserId}
+                    >
+                      查询
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 显示当前角色图片 */}
+                {characterImageUrl && (
+                  <div className="space-y-2">
+                    <Label>当前角色图片</Label>
+                    <div className="border rounded-lg p-4 bg-gray-50">
+                      <img
+                        src={characterImageUrl}
+                        alt="用户角色图片"
+                        className="max-w-xs max-h-64 mx-auto object-contain"
+                      />
+                      <div className="mt-2 text-sm text-gray-600 text-center break-all">
+                        {characterImageUrl}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 上传新图片 */}
+                <div className="space-y-2">
+                  <Label htmlFor="characterFile">上传角色图片</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="characterFile"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setCharacterFile(file)
+                          setCharacterResult(null)
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={handleUploadCharacterImage}
+                      disabled={!characterUserId || !characterFile || characterUploading}
+                    >
+                      {characterUploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          上传中...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          上传
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {characterFile && (
+                    <div className="text-sm text-gray-600">
+                      已选择: {characterFile.name} ({(characterFile.size / 1024).toFixed(2)} KB)
+                    </div>
+                  )}
+                </div>
+
+                {/* 上传结果 */}
+                {characterResult && (
+                  <div className={`p-4 rounded-lg flex items-start gap-3 ${
+                    characterResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                  }`}>
+                    {characterResult.success ? (
+                      <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <div className={`font-medium ${
+                        characterResult.success ? 'text-green-900' : 'text-red-900'
+                      }`}>
+                        {characterResult.message}
+                      </div>
+                      {characterResult.url && (
+                        <div className="mt-2 text-sm text-gray-600 break-all">
+                          {characterResult.url}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 使用说明 */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-2">使用说明</h4>
+                  <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
+                    <li>输入用户ID后点击"查询"可以查看该用户当前的角色图片</li>
+                    <li>上传的角色图片应该是透明背景的PNG格式（推荐300x300像素）</li>
+                    <li>上传成功后，该用户的奖状将自动使用个性化合成</li>
+                    <li>如果用户没有角色图片，结算时将直接使用奖状底图</li>
+                    <li>图片大小限制：5MB以内</li>
                   </ul>
                 </div>
               </div>

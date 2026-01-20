@@ -1,5 +1,8 @@
 import { db } from './db'
 import { getWeekNumber } from './week'
+import { compositeCertificateImage } from './image-composite'
+import OSS from 'ali-oss'
+import sharp from 'sharp'
 
 /**
  * 结算指定周的排名
@@ -133,6 +136,29 @@ export async function settleWeekRanking(
       })
     }
 
+    // 初始化 OSS 客户端（用于上传合成后的图片）
+    let ossClient: OSS | null = null
+    try {
+      const accessKeyId = process.env.OSS_ACCESS_KEY_ID
+      const accessKeySecret = process.env.OSS_ACCESS_KEY_SECRET
+      const bucket = process.env.OSS_BUCKET
+      const region = process.env.OSS_REGION
+      const endpoint = process.env.OSS_ENDPOINT
+
+      if (accessKeyId && accessKeySecret && bucket && region && endpoint) {
+        ossClient = new OSS({
+          accessKeyId,
+          accessKeySecret,
+          bucket,
+          region,
+          endpoint,
+          timeout: 60000,
+        })
+      }
+    } catch (error) {
+      console.warn('OSS 客户端初始化失败，将使用底图URL:', error)
+    }
+
     // 7. 分配排名并保存到 rewards 表
     const rewards = []
     for (let i = 0; i < eligibleUsers.length; i++) {
@@ -141,21 +167,82 @@ export async function settleWeekRanking(
       const type = rank <= 3 ? rank : 4 // 1=冠军，2=亚军，3=季军，4=参与奖
 
       // 根据 type 获取对应的底图URL
-      let certificateUrl: string | null = null
+      let baseImageUrl: string | null = null
       if (certConfig) {
         switch (type) {
           case 1: // 冠军
-            certificateUrl = certConfig.img_gold
+            baseImageUrl = certConfig.img_gold
             break
           case 2: // 亚军
-            certificateUrl = certConfig.img_silver
+            baseImageUrl = certConfig.img_silver
             break
           case 3: // 季军
-            certificateUrl = certConfig.img_bronze
+            baseImageUrl = certConfig.img_bronze
             break
           case 4: // 参与奖
-            certificateUrl = certConfig.img_participate
+            baseImageUrl = certConfig.img_participate
             break
+        }
+      }
+
+      let certificateUrl: string | null = baseImageUrl
+
+      // 如果用户有角色图片且底图存在，尝试合成图片
+      if (baseImageUrl) {
+        try {
+          // 查询用户的角色图片
+          const userRecord = await db.user.findUnique({
+            where: { id: user.userId },
+            select: { characterImage: true },
+          })
+
+          const characterImageUrl = userRecord?.characterImage || null
+
+          // 如果有角色图片，进行合成
+          if (characterImageUrl && ossClient) {
+            try {
+              // 合成图片
+              const compositeBuffer = await compositeCertificateImage(
+                baseImageUrl,
+                characterImageUrl
+              )
+
+              // 检测合成后图片的格式（保持底图格式）
+              const metadata = await sharp(compositeBuffer).metadata()
+              const format = metadata.format || 'png'
+              
+              // 根据格式确定文件扩展名和 Content-Type
+              const extMap: Record<string, { ext: string; contentType: string }> = {
+                jpeg: { ext: 'jpg', contentType: 'image/jpeg' },
+                jpg: { ext: 'jpg', contentType: 'image/jpeg' },
+                png: { ext: 'png', contentType: 'image/png' },
+                webp: { ext: 'webp', contentType: 'image/webp' },
+              }
+              
+              const formatInfo = extMap[format] || extMap.png
+              
+              // 上传合成后的图片到 OSS（保持底图格式）
+              const timestamp = Date.now()
+              const fileName = `certificates/${weekNumber}/${user.userId}-${rank}-${timestamp}.${formatInfo.ext}`
+              
+              const uploadResult = await ossClient.put(fileName, compositeBuffer, {
+                headers: {
+                  'Content-Type': formatInfo.contentType,
+                },
+              })
+
+              certificateUrl = uploadResult.url
+              console.log(`用户 ${user.userId} 的个性化奖状已生成: ${certificateUrl} (格式: ${format})`)
+            } catch (compositeError: any) {
+              console.error(`用户 ${user.userId} 的图片合成失败，使用底图:`, compositeError.message)
+              // 合成失败时使用底图
+              certificateUrl = baseImageUrl
+            }
+          }
+        } catch (error: any) {
+          console.error(`处理用户 ${user.userId} 的奖状时出错:`, error.message)
+          // 出错时使用底图
+          certificateUrl = baseImageUrl
         }
       }
 
