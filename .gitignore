@@ -44,3 +44,6 @@ docker-compose.yml
 next-env.d.ts
 
 /lib/generated/prisma
+
+# Cursor/Claude editor configuration
+.claude/
